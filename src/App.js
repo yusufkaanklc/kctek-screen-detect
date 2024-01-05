@@ -120,22 +120,6 @@ function App() {
 
   const intval = useRef(null);
 
-  const reverseCounterFunc = () => {
-    setReverseCounter((prevCount) => {
-      // Önceki değeri kullanarak azalt
-      const newCount = prevCount - 1;
-      return newCount >= 0 ? newCount : 0; // Negatif olmamasını kontrol et
-    });
-
-    if (reverseCounter > 1) {
-      const setimeoutId = setTimeout(reverseCounterFunc, 1000);
-      setReverseCounterId(setimeoutId);
-    } else {
-      onClose();
-      clearTimeout(reverseCounterId);
-    }
-  };
-
   useEffect(() => {
     if (isFullScreen) {
       if (
@@ -147,10 +131,10 @@ function App() {
       ) {
         // Konsola bir mesaj yaz ve modalı aç
         console.log("Bir şey değişti. Modal açılıyor...");
+
         onOpen();
-        console.log("aaa");
+
         if (intval.current) return;
-        console.log(" bbb");
 
         intval.current = setInterval(() => {
           setReverseCounter((prev) => prev - 1);
