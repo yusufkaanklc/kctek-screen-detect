@@ -4,6 +4,8 @@ import {
   ModalOverlay,
   ModalContent,
   ModalBody,
+  ModalFooter,
+  Button,
   useDisclosure,
   Flex,
   Text,
@@ -25,6 +27,9 @@ function Main({ isClicked }) {
     width: window.screen.width,
     height: window.screen.height,
   });
+
+  var dual_monitor =
+    defaultScreenSize.current.width / defaultScreenSize.current.height > 2;
 
   // Tarayıcı penceresinin odaklanma durumu
   const [hasFocus, setHasFocus] = useState(true);
@@ -71,9 +76,9 @@ function Main({ isClicked }) {
     if (!document.fullscreenElement) {
       if (isClicked) console.log("link ile girildi");
       else {
-        window.location.href = "/"
-        return
-      };
+        window.location.href = "/";
+        return;
+      }
       element.requestFullscreen().catch((err) => {
         console.error("Tam ekran hatası:", err);
       });
@@ -102,6 +107,15 @@ function Main({ isClicked }) {
       });
     } else if (element.msRequestFullscreen) {
       element.msRequestFullscreen().catch((err) => {
+        console.error("Tam ekran hatası:", err);
+      });
+    }
+  };
+
+  // burada modal içindeki butona tıklama olayı dinleniyor
+  const modalButton = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch((err) => {
         console.error("Tam ekran hatası:", err);
       });
     }
@@ -171,7 +185,7 @@ function Main({ isClicked }) {
   }, [
     isFullScreen,
     currentScreenSize,
-    defaultScreenSize,
+    defaultScreenSize.current,
     isTabChange,
     hasFocus,
   ]);
@@ -180,7 +194,6 @@ function Main({ isClicked }) {
   useEffect(() => {
     if (reverseCounter === 0) {
       clearInterval(intval.current);
-      intval.current = null;
     }
   }, [reverseCounter]);
 
@@ -188,6 +201,7 @@ function Main({ isClicked }) {
   useEffect(() => {
     console.log(defaultScreenSize.current);
     console.log("current", currentScreenSize);
+    console.log(dual_monitor);
   }, [defaultScreenSize]);
 
   // Ana bileşen render'ı
@@ -205,6 +219,9 @@ function Main({ isClicked }) {
             <ModalBody>
               Dikkat Sınav odağı bozuldu {reverseCounter} içinde odaklanın!
             </ModalBody>
+            <ModalFooter>
+              <Button onClick={() => modalButton()}>Sınava dön</Button>
+            </ModalFooter>
           </ModalContent>
         </Modal>
         {/* Kural ihlali sayısını gösterme */}
