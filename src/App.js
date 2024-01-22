@@ -3,13 +3,10 @@ import {
   Modal,
   ModalOverlay,
   ModalContent,
-  ModalHeader,
-  ModalFooter,
   ModalBody,
-  ModalCloseButton,
   useDisclosure,
-  Button,
   Flex,
+  Text,
 } from "@chakra-ui/react";
 import "./App.css";
 import { calcLength } from "framer-motion";
@@ -34,7 +31,7 @@ function App() {
 
   const [reverseCounter, setReverseCounter] = useState(10);
 
-  const [reverseCounterId, setReverseCounterId] = useState(null);
+  const [ruleBreakCount, setRuleBreakCount] = useState(0);
 
   const handleResize = () => {
     setCurrentScreenSize({
@@ -64,6 +61,18 @@ function App() {
           console.error("Tam ekran hatası:", err);
         });
       }
+    };
+
+    const handleModalClose = () => {
+      // Burada modalın kapatılmasını engelleyecek bir koşul ekleyebilirsiniz.
+      // Örneğin, isFullScreen durumu veya başka bir durum kontrolü ekleyebilirsiniz.
+      if (isFullScreen) {
+        console.log("Modal kapatılamaz, tam ekran modundayız.");
+        return;
+      }
+
+      // Modalı kapatma işlemi
+      onClose();
     };
 
     const handleF11Press = (event) => {
@@ -139,6 +148,8 @@ function App() {
         intval.current = setInterval(() => {
           setReverseCounter((prev) => prev - 1);
         }, 1000);
+
+        setRuleBreakCount((prev) => prev + 1);
       } else {
         // Değişen bir şey yoksa, konsola bir mesaj yaz ve modalı kapat
         console.log("Değişen bir şey yok. Modal kapatılıyor...");
@@ -159,8 +170,6 @@ function App() {
 
   useEffect(() => {
     if (reverseCounter === 0) {
-      console.error("Bittti");
-
       clearInterval(intval.current);
       intval.current = null;
     }
@@ -169,7 +178,11 @@ function App() {
   return (
     <>
       <Flex justifyContent={"center"} alignItems={"center"} height={"100vh"}>
-        <Modal isOpen={isOpen} onClose={onClose} closeOnOverlayClick={false}>
+        <Modal
+          isOpen={isOpen}
+          onRequestClose={onClose}
+          closeOnOverlayClick={false}
+        >
           <ModalOverlay />
           <ModalContent>
             <ModalBody>
@@ -177,6 +190,11 @@ function App() {
             </ModalBody>
           </ModalContent>
         </Modal>
+        {ruleBreakCount !== 0 ? (
+          <Text>İhlal sayısı : {ruleBreakCount}</Text>
+        ) : (
+          <Text>Herhangi bir ihlal yok devam edebilirsiniz</Text>
+        )}
       </Flex>
     </>
   );
