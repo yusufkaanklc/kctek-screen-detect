@@ -1,16 +1,59 @@
-import React from "react";
-import { BrowserRouter, Link, Route, Routes } from "react-router-dom"; // İçe aktarma değişikliğine dikkat edin
-import { Button, Flex } from "@chakra-ui/react";
-import Home from "./Pages/Home";
-import QuestPage from "./Pages/QuestPage";
+import { Route, Routes, Link } from "react-router-dom";
+import { useEffect, useState } from "react";
+import Main from "./Main.js";
+
 function App() {
+  const [isClicked, setIsClicked] = useState(false);
+  const [isScreenExtended, setIsScreenExtended] = useState(null);
+
+  useEffect(() => {
+    // Ekran genişliği ve yüksekliği değiştiğinde çalışacak kod
+    const handleResize = () => {
+      const currentScreen = window.screen;
+      setIsScreenExtended(currentScreen.isExtended);
+    };
+
+    // Resize olayını dinle
+    window.addEventListener("resize", handleResize);
+
+    // fullscreenchange olayını dinle
+    document.addEventListener("fullscreenchange", handleResize);
+
+    // Component unmount olduğunda dinleyiciyi kaldır
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      document.removeEventListener("fullscreenchange", handleResize);
+    };
+
+    // Diğer bağımlılıklar burada olabilir (eğer varsa)
+  }, [isScreenExtended]);
+
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/questPage" element={<QuestPage />} />
-      </Routes>
-    </BrowserRouter>
+    <Routes>
+      <Route
+        path="/"
+        element={
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              height: "100vh",
+            }}
+          >
+            <Link to="/main" onClick={() => setIsClicked(true)}>
+              Sınava Başlamak için tıkla
+            </Link>
+          </div>
+        }
+      />
+      <Route
+        path="/main"
+        element={
+          <Main isClicked={isClicked} isScreenExtended={isScreenExtended} />
+        }
+      />
+    </Routes>
   );
 }
 
