@@ -10,28 +10,38 @@ import {
 } from "@chakra-ui/react";
 import "./App.css";
 
-function Main() {
+function Main({ isClicked }) {
+  // Modal görünürlüğü için hook'u kullanma
   const { isOpen, onOpen, onClose } = useDisclosure();
 
+  // Ekran boyutu durumu için state ve başlangıç değeri
   const [currentScreenSize, setCurrentScreenSize] = useState({
     width: window.innerWidth,
     height: window.innerHeight,
   });
 
+  // Default ekran boyutu için useRef kullanma
   const defaultScreenSize = useRef({
     width: window.screen.width,
     height: window.screen.height,
   });
 
+  // Tarayıcı penceresinin odaklanma durumu
   const [hasFocus, setHasFocus] = useState(true);
+
+  // Tarayıcı sekmesi değişiklik durumu
   const [isTabChange, setIsTabChange] = useState(false);
 
+  // Tam ekran durumu
   const [isFullScreen, setIsFullScreen] = useState(false);
 
+  // Geri sayım için kullanılan state
   const [reverseCounter, setReverseCounter] = useState(10);
 
+  // Kural ihlali sayısı
   const [ruleBreakCount, setRuleBreakCount] = useState(0);
 
+  // Pencere boyutu değişikliği durumunu ele alma
   const handleResize = () => {
     setCurrentScreenSize({
       width: window.innerWidth,
@@ -39,27 +49,37 @@ function Main() {
     });
   };
 
+  // Tarayıcı sekmesi değişikliğini ele alma
   const handleTabChange = () => {
     setIsTabChange((prev) => !prev);
   };
 
+  // Pencere odak kaybını ele alma
   const handleBlur = () => {
     setHasFocus(false);
   };
 
+  // Pencere odak kazanımını ele alma
   const handleFocus = () => {
     setHasFocus(true);
   };
 
+  // Tam ekran modunu açma
   const openFullScreen = () => {
     const element = document.documentElement;
 
     if (!document.fullscreenElement) {
+      if (isClicked) console.log("link ile girildi");
+      else {
+        window.location.href = "/"
+        return
+      };
       element.requestFullscreen().catch((err) => {
         console.error("Tam ekran hatası:", err);
       });
     }
 
+    // F11 tuşuna basıldığında tam ekran modunu açma
     const handleF11Press = (event) => {
       if (event.key === "F11") {
         event.preventDefault(); // Bu, tarayıcının varsayılan F11 işlevini devre dışı bırakır
@@ -71,8 +91,8 @@ function Main() {
       }
     };
 
+    // F11 tuşu olayını dinleme
     if (element.requestFullscreen) {
-      // Tıklama olayını dinle
       window.addEventListener("keydown", handleF11Press);
     } else if (element.mozRequestFullScreen) {
       element.mozRequestFullScreen();
@@ -87,15 +107,17 @@ function Main() {
     }
   };
 
+  // Komponentin monte edilmesi ve demonte edilmesini ele alma
   useEffect(() => {
+    openFullScreen();
+
     window.addEventListener("resize", handleResize);
     document.addEventListener("visibilitychange", handleTabChange);
-
-    openFullScreen();
 
     window.addEventListener("blur", handleBlur);
     window.addEventListener("focus", handleFocus);
 
+    // Tam ekran değişikliğini ele alma
     const handleFullscreenChange = () => {
       setIsFullScreen(!!document.fullscreenElement);
     };
@@ -111,6 +133,7 @@ function Main() {
     };
   }, []);
 
+  // Geri sayım ve modal kontrolü için useEffect
   const intval = useRef(null);
 
   useEffect(() => {
@@ -129,17 +152,18 @@ function Main() {
 
         if (intval.current) return;
 
+        // Geri sayım başlatma
         intval.current = setInterval(() => {
           setReverseCounter((prev) => prev - 1);
         }, 1000);
 
+        // Kural ihlali sayısını artırma
         setRuleBreakCount((prev) => prev + 1);
       } else {
         // Değişen bir şey yoksa, konsola bir mesaj yaz ve modalı kapat
         console.log("Değişen bir şey yok. Modal kapatılıyor...");
         onClose();
         setReverseCounter(10);
-        // clearTimeout(reverseCounterId);
         clearInterval(intval.current);
         intval.current = null;
       }
@@ -147,11 +171,12 @@ function Main() {
   }, [
     isFullScreen,
     currentScreenSize,
-    defaultScreenSize.current,
+    defaultScreenSize,
     isTabChange,
     hasFocus,
   ]);
 
+  // Geri sayım sıfır olduğunda interval'i temizleme
   useEffect(() => {
     if (reverseCounter === 0) {
       clearInterval(intval.current);
@@ -159,9 +184,17 @@ function Main() {
     }
   }, [reverseCounter]);
 
+  // Konsola ekran boyutu bilgilerini yazma
+  useEffect(() => {
+    console.log(defaultScreenSize.current);
+    console.log("current", currentScreenSize);
+  }, [defaultScreenSize]);
+
+  // Ana bileşen render'ı
   return (
     <>
       <Flex justifyContent={"center"} alignItems={"center"} height={"100vh"}>
+        {/* Modal bileşeni */}
         <Modal
           isOpen={isOpen}
           onRequestClose={onClose}
@@ -174,6 +207,7 @@ function Main() {
             </ModalBody>
           </ModalContent>
         </Modal>
+        {/* Kural ihlali sayısını gösterme */}
         {ruleBreakCount !== 0 ? (
           <Text>İhlal sayısı : {ruleBreakCount}</Text>
         ) : (
