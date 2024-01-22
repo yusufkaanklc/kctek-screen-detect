@@ -12,7 +12,7 @@ import {
 } from "@chakra-ui/react";
 import "./App.css";
 
-function Main({ isClicked }) {
+function Main({ isClicked, screenCount }) {
   // Modal görünürlüğü için hook'u kullanma
   const { isOpen, onOpen, onClose } = useDisclosure();
 
@@ -27,9 +27,6 @@ function Main({ isClicked }) {
     width: window.screen.width,
     height: window.screen.height,
   });
-
-  var dual_monitor =
-    defaultScreenSize.current.width / defaultScreenSize.current.height > 2;
 
   // Tarayıcı penceresinin odaklanma durumu
   const [hasFocus, setHasFocus] = useState(true);
@@ -74,8 +71,7 @@ function Main({ isClicked }) {
     const element = document.documentElement;
 
     if (!document.fullscreenElement) {
-      if (isClicked) console.log("link ile girildi");
-      else {
+      if (!isClicked) {
         window.location.href = "/";
         return;
       }
@@ -124,7 +120,6 @@ function Main({ isClicked }) {
   // Komponentin monte edilmesi ve demonte edilmesini ele alma
   useEffect(() => {
     openFullScreen();
-
     window.addEventListener("resize", handleResize);
     document.addEventListener("visibilitychange", handleTabChange);
 
@@ -157,11 +152,9 @@ function Main({ isClicked }) {
         defaultScreenSize.current.height !== currentScreenSize.height ||
         !document.fullscreenElement ||
         isTabChange ||
+        screenCount > 1 ||
         !hasFocus
       ) {
-        // Konsola bir mesaj yaz ve modalı aç
-        console.log("Bir şey değişti. Modal açılıyor...");
-
         onOpen();
 
         if (intval.current) return;
@@ -175,7 +168,6 @@ function Main({ isClicked }) {
         setRuleBreakCount((prev) => prev + 1);
       } else {
         // Değişen bir şey yoksa, konsola bir mesaj yaz ve modalı kapat
-        console.log("Değişen bir şey yok. Modal kapatılıyor...");
         onClose();
         setReverseCounter(10);
         clearInterval(intval.current);
@@ -184,25 +176,18 @@ function Main({ isClicked }) {
     }
   }, [
     isFullScreen,
-    currentScreenSize,
-    defaultScreenSize.current,
     isTabChange,
     hasFocus,
+    screenCount,
+    currentScreenSize,
+    defaultScreenSize.current,
   ]);
-
   // Geri sayım sıfır olduğunda interval'i temizleme
   useEffect(() => {
     if (reverseCounter === 0) {
       clearInterval(intval.current);
     }
   }, [reverseCounter]);
-
-  // Konsola ekran boyutu bilgilerini yazma
-  useEffect(() => {
-    console.log(defaultScreenSize.current);
-    console.log("current", currentScreenSize);
-    console.log(dual_monitor);
-  }, [defaultScreenSize]);
 
   // Ana bileşen render'ı
   return (
@@ -217,7 +202,9 @@ function Main({ isClicked }) {
           <ModalOverlay />
           <ModalContent>
             <ModalBody>
-              Dikkat Sınav odağı bozuldu {reverseCounter} içinde odaklanın!
+              {screenCount > 1
+                ? `Dikkat ${screenCount} ekran algılandı, ikincil ekranı ${reverseCounter} saniye içinde kapatın!`
+                : `Dikkat Sınav odağı bozuldu ${reverseCounter} içinde odaklanın!`}
             </ModalBody>
             <ModalFooter>
               <Button onClick={() => modalButton()}>Sınava dön</Button>
