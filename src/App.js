@@ -16,16 +16,9 @@ function App() {
     // Resize olayını dinle
     window.addEventListener("resize", handleResize);
 
-    // fullscreenchange olayını dinle
-    document.addEventListener("fullscreenchange", handleResize);
-
-    // Component unmount olduğunda dinleyiciyi kaldır
     return () => {
       window.removeEventListener("resize", handleResize);
-      document.removeEventListener("fullscreenchange", handleResize);
     };
-
-    // Diğer bağımlılıklar burada olabilir (eğer varsa)
   }, [isScreenExtended]);
 
   return (

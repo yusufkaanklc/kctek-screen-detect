@@ -9,6 +9,7 @@ import {
   useDisclosure,
   Flex,
   Text,
+  Box,
 } from "@chakra-ui/react";
 import "./App.css";
 
@@ -16,23 +17,20 @@ function Main({ isClicked, isScreenExtended }) {
   // Modal görünürlüğü için hook'u kullanma
   const { isOpen, onOpen, onClose } = useDisclosure();
 
+  const defaultScreenSize = useRef({
+    width: window.innerWidth,
+    height: window.innerHeight,
+  });
+
   // Ekran boyutu durumu için state ve başlangıç değeri
   const [currentScreenSize, setCurrentScreenSize] = useState({
     width: window.innerWidth,
     height: window.innerHeight,
   });
-
-  // Default ekran boyutu için useRef kullanma
-  const defaultScreenSize = useRef({
-    width: window.screen.width,
-    height: window.screen.height,
-  });
-
   // Tarayıcı penceresinin odaklanma durumu
   const [hasFocus, setHasFocus] = useState(true);
 
   // Tarayıcı sekmesi değişiklik durumu
-  const [isTabChange, setIsTabChange] = useState(false);
 
   // Tam ekran durumu
   const [isFullScreen, setIsFullScreen] = useState(false);
@@ -43,6 +41,12 @@ function Main({ isClicked, isScreenExtended }) {
   // Kural ihlali sayısı
   const [ruleBreakCount, setRuleBreakCount] = useState(0);
 
+  const [isButtonVisible, setIsButtonVisible] = useState(false);
+
+  const [fullScreenBreach, setFullScreenBreach] = useState(0);
+  const [focusBreach, setFocusBreach] = useState(0);
+  const [extendedBreach, setExtendedBreach] = useState(0);
+
   // Pencere boyutu değişikliği durumunu ele alma
   const handleResize = () => {
     setCurrentScreenSize({
@@ -52,9 +56,6 @@ function Main({ isClicked, isScreenExtended }) {
   };
 
   // Tarayıcı sekmesi değişikliğini ele alma
-  const handleTabChange = () => {
-    setIsTabChange((prev) => !prev);
-  };
 
   // Pencere odak kaybını ele alma
   const handleBlur = () => {
@@ -95,16 +96,6 @@ function Main({ isClicked, isScreenExtended }) {
     // F11 tuşu olayını dinleme
     if (element.requestFullscreen) {
       window.addEventListener("keydown", handleF11Press);
-    } else if (element.mozRequestFullScreen) {
-      element.mozRequestFullScreen();
-    } else if (element.webkitRequestFullscreen) {
-      element.webkitRequestFullscreen().catch((err) => {
-        console.error("Tam ekran hatası:", err);
-      });
-    } else if (element.msRequestFullscreen) {
-      element.msRequestFullscreen().catch((err) => {
-        console.error("Tam ekran hatası:", err);
-      });
     }
   };
 
@@ -121,7 +112,6 @@ function Main({ isClicked, isScreenExtended }) {
   useEffect(() => {
     openFullScreen();
     window.addEventListener("resize", handleResize);
-    document.addEventListener("visibilitychange", handleTabChange);
 
     window.addEventListener("blur", handleBlur);
     window.addEventListener("focus", handleFocus);
@@ -135,7 +125,6 @@ function Main({ isClicked, isScreenExtended }) {
 
     return () => {
       window.removeEventListener("resize", handleResize);
-      document.removeEventListener("visibilitychange", handleTabChange);
       window.removeEventListener("blur", handleBlur);
       window.removeEventListener("focus", handleFocus);
       document.removeEventListener("fullscreenchange", handleFullscreenChange);
@@ -148,25 +137,36 @@ function Main({ isClicked, isScreenExtended }) {
   useEffect(() => {
     console.log(isScreenExtended);
     if (isFullScreen) {
-      if (
-        defaultScreenSize.current.width !== currentScreenSize.width ||
-        defaultScreenSize.current.height !== currentScreenSize.height ||
-        !document.fullscreenElement ||
-        isTabChange ||
-        (isScreenExtended && isScreenExtended !== null) ||
-        !hasFocus
-      ) {
+      const isFullScreenBreach = !document.fullscreenElement;
+      const isScreenSizeBreach =
+        defaultScreenSize.current.width > currentScreenSize.width ||
+        defaultScreenSize.current.height > currentScreenSize.height;
+      const isFocusBreach = !hasFocus;
+      const isExtendedBreach = isScreenExtended && isScreenExtended !== null;
+
+      if (isFullScreenBreach || isFocusBreach || isExtendedBreach) {
         onOpen();
 
-        if (intval.current) return;
+        if (!intval.current) {
+          intval.current = setInterval(() => {
+            setReverseCounter((prev) => prev - 1);
+          }, 1000);
+        }
 
-        // Geri sayım başlatma
-        intval.current = setInterval(() => {
-          setReverseCounter((prev) => prev - 1);
-        }, 1000);
-
-        // Kural ihlali sayısını artırma
         setRuleBreakCount((prev) => prev + 1);
+
+        if (isFullScreenBreach || isScreenSizeBreach) {
+          setIsButtonVisible(true);
+          setFullScreenBreach((prev) => prev + 1);
+        } else {
+          setIsButtonVisible(false);
+        }
+        if (isFocusBreach) {
+          setFocusBreach((prev) => prev + 1);
+        }
+        if (isExtendedBreach) {
+          setExtendedBreach((prev) => prev + 1);
+        }
       } else {
         // Değişen bir şey yoksa, konsola bir mesaj yaz ve modalı kapat
         onClose();
@@ -175,14 +175,7 @@ function Main({ isClicked, isScreenExtended }) {
         intval.current = null;
       }
     }
-  }, [
-    isFullScreen,
-    isTabChange,
-    hasFocus,
-    isScreenExtended,
-    currentScreenSize,
-    defaultScreenSize.current,
-  ]);
+  }, [isFullScreen, hasFocus, isScreenExtended, currentScreenSize]);
   // Geri sayım sıfır olduğunda interval'i temizleme
   useEffect(() => {
     if (reverseCounter === 0) {
@@ -193,32 +186,56 @@ function Main({ isClicked, isScreenExtended }) {
   // Ana bileşen render'ı
   return (
     <>
-      <Flex justifyContent={"center"} alignItems={"center"} height={"100vh"}>
-        {/* Modal bileşeni */}
-        <Modal
-          isOpen={isOpen}
-          onRequestClose={onClose}
-          closeOnOverlayClick={false}
+      <Box position={"relative"}>
+        <Flex
+          justifyContent={"center"}
+          alignItems={"center"}
+          height={"100vh"}
+          position={"relative"}
+          top={0}
+          left={0}
         >
-          <ModalOverlay />
-          <ModalContent>
-            <ModalBody>
-              {isScreenExtended
-                ? `Dikkat birden çok ekran algılandı, ikincil ekranı ${reverseCounter} saniye içinde kapatın!`
-                : `Dikkat Sınav odağı bozuldu ${reverseCounter} içinde odaklanın!`}
-            </ModalBody>
-            <ModalFooter>
-              <Button onClick={() => modalButton()}>Sınava dön</Button>
-            </ModalFooter>
-          </ModalContent>
-        </Modal>
-        {/* Kural ihlali sayısını gösterme */}
-        {ruleBreakCount !== 0 ? (
-          <Text>İhlal sayısı : {ruleBreakCount}</Text>
-        ) : (
-          <Text>Herhangi bir ihlal yok devam edebilirsiniz</Text>
-        )}
-      </Flex>
+          {/* Modal bileşeni */}
+          <Modal
+            isOpen={isOpen}
+            onRequestClose={onClose}
+            closeOnOverlayClick={false}
+          >
+            <ModalOverlay />
+            <ModalContent>
+              <ModalBody>
+                {isScreenExtended
+                  ? `Dikkat birden çok ekran algılandı, ikincil ekranı ${reverseCounter} saniye içinde kapatın!`
+                  : `Dikkat Sınav odağı bozuldu ${reverseCounter} içinde odaklanın!`}
+              </ModalBody>
+              <ModalFooter>
+                {isButtonVisible && (
+                  <Button onClick={() => modalButton()}>Sınava dön</Button>
+                )}
+              </ModalFooter>
+            </ModalContent>
+          </Modal>
+        </Flex>
+        <Box position={"absolute"} top={"10%"} left={"10px"}>
+          {/* Kural ihlali sayısını gösterme */}
+          {ruleBreakCount !== 0 ? (
+            <>
+              <Text>İhlal sayısı : {ruleBreakCount}</Text>
+              {fullScreenBreach !== 0 && (
+                <Text>Tam ekran ihlal sayısı : {fullScreenBreach}</Text>
+              )}
+              {focusBreach !== 0 && (
+                <Text>Sınav odağı ihlal sayısı : {focusBreach}</Text>
+              )}
+              {extendedBreach !== 0 && (
+                <Text>Çoklu ekran ihlal sayısı : {extendedBreach}</Text>
+              )}
+            </>
+          ) : (
+            <Text>Herhangi bir ihlal yok devam edebilirsiniz</Text>
+          )}
+        </Box>
+      </Box>
     </>
   );
 }
