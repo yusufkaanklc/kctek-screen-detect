@@ -13,24 +13,20 @@ import {
 } from "@chakra-ui/react";
 import "./App.css";
 
-function Main({ isClicked, isScreenExtended }) {
+function Main({ isClicked, isScreenExtended, defaultScreenSize }) {
   // Modal görünürlüğü için hook'u kullanma
   const { isOpen, onOpen, onClose } = useDisclosure();
 
-  const defaultScreenSize = useRef({
-    width: window.innerWidth,
-    height: window.innerHeight,
-  });
+  // Ekran boyutu varsayılan değerlerini tutmak için useRef kullanma
 
   // Ekran boyutu durumu için state ve başlangıç değeri
   const [currentScreenSize, setCurrentScreenSize] = useState({
-    width: window.innerWidth,
-    height: window.innerHeight,
+    width: "",
+    height: "",
   });
+
   // Tarayıcı penceresinin odaklanma durumu
   const [hasFocus, setHasFocus] = useState(true);
-
-  // Tarayıcı sekmesi değişiklik durumu
 
   // Tam ekran durumu
   const [isFullScreen, setIsFullScreen] = useState(false);
@@ -38,12 +34,10 @@ function Main({ isClicked, isScreenExtended }) {
   // Geri sayım için kullanılan state
   const [reverseCounter, setReverseCounter] = useState(10);
 
-  // Kural ihlali sayısı
+  // Kural ihlali sayıları
   const [ruleBreakCount, setRuleBreakCount] = useState(0);
-
   const [isButtonVisible, setIsButtonVisible] = useState(false);
-
-  const [fullScreenBreach, setFullScreenBreach] = useState(0);
+  const [screenSizeBreach, setScreenSizeBreach] = useState(0);
   const [focusBreach, setFocusBreach] = useState(0);
   const [extendedBreach, setExtendedBreach] = useState(0);
 
@@ -54,8 +48,6 @@ function Main({ isClicked, isScreenExtended }) {
       height: window.innerHeight,
     });
   };
-
-  // Tarayıcı sekmesi değişikliğini ele alma
 
   // Pencere odak kaybını ele alma
   const handleBlur = () => {
@@ -73,9 +65,11 @@ function Main({ isClicked, isScreenExtended }) {
 
     if (!document.fullscreenElement) {
       if (!isClicked) {
+        // Eğer tıklanmadıysa, ana sayfaya yönlendirme
         window.location.href = "/";
         return;
       }
+      // Tam ekran modunu açma
       element.requestFullscreen().catch((err) => {
         console.error("Tam ekran hatası:", err);
       });
@@ -83,25 +77,28 @@ function Main({ isClicked, isScreenExtended }) {
 
     // F11 tuşuna basıldığında tam ekran modunu açma
     const handleF11Press = (event) => {
+      console.log("aaaaaa");
       if (event.key === "F11") {
-        event.preventDefault(); // Bu, tarayıcının varsayılan F11 işlevini devre dışı bırakır
+        event.preventDefault();
+        // Eğer tam ekran modu kapalıysa, açma
         if (!document.fullscreenElement) {
           element.requestFullscreen().catch((err) => {
             console.error("Tam ekran hatası:", err);
           });
+        } else {
+          document.exitFullscreen();
         }
       }
     };
 
     // F11 tuşu olayını dinleme
-    if (element.requestFullscreen) {
-      window.addEventListener("keydown", handleF11Press);
-    }
+    window.addEventListener("keydown", handleF11Press);
   };
 
-  // burada modal içindeki butona tıklama olayı dinleniyor
+  // Modal içindeki butona tıklama olayı
   const modalButton = () => {
     if (!document.fullscreenElement) {
+      // Tam ekran modunu açma
       document.documentElement.requestFullscreen().catch((err) => {
         console.error("Tam ekran hatası:", err);
       });
@@ -111,8 +108,8 @@ function Main({ isClicked, isScreenExtended }) {
   // Komponentin monte edilmesi ve demonte edilmesini ele alma
   useEffect(() => {
     openFullScreen();
+    handleResize();
     window.addEventListener("resize", handleResize);
-
     window.addEventListener("blur", handleBlur);
     window.addEventListener("focus", handleFocus);
 
@@ -131,51 +128,73 @@ function Main({ isClicked, isScreenExtended }) {
     };
   }, []);
 
-  // Geri sayım ve modal kontrolü için useEffect
+  // Kural ihlali durumu için genel useEffect
   const intval = useRef(null);
 
+  const handleRuleBreak = () => {
+    onOpen();
+
+    if (!intval.current) {
+      intval.current = setInterval(() => {
+        setReverseCounter((prev) => prev - 1);
+      }, 1000);
+    }
+
+    setRuleBreakCount((prev) => prev + 1);
+  };
+
+  // Kural ihlali durumlarını ele alan useEffect'ler
   useEffect(() => {
-    console.log(isScreenExtended);
-    if (isFullScreen) {
-      const isFullScreenBreach = !document.fullscreenElement;
-      const isScreenSizeBreach =
-        defaultScreenSize.current.width > currentScreenSize.width ||
-        defaultScreenSize.current.height > currentScreenSize.height;
-      const isFocusBreach = !hasFocus;
-      const isExtendedBreach = isScreenExtended && isScreenExtended !== null;
+    // Tam ekran modunda olup, ekran boyutu değişikliği durumu varsa kural ihlali
+    if (
+      isFullScreen &&
+      !(
+        defaultScreenSize.current.width === currentScreenSize.width &&
+        defaultScreenSize.current.height === currentScreenSize.height
+      )
+    ) {
+      console.log("def", defaultScreenSize.current, "cur", currentScreenSize);
+      handleRuleBreak();
+      setScreenSizeBreach((prev) => prev + 1);
+      setIsButtonVisible(true);
+    }
+  }, [currentScreenSize, isFullScreen]);
 
-      if (isFullScreenBreach || isFocusBreach || isExtendedBreach) {
-        onOpen();
+  useEffect(() => {
+    // Tam ekran modunda olup, odak kaybı durumu varsa kural ihlali
+    if (isFullScreen && !hasFocus) {
+      handleRuleBreak();
+      setFocusBreach((prev) => prev + 1);
+      setIsButtonVisible(false);
+    }
+  }, [hasFocus, isFullScreen]);
 
-        if (!intval.current) {
-          intval.current = setInterval(() => {
-            setReverseCounter((prev) => prev - 1);
-          }, 1000);
-        }
+  useEffect(() => {
+    // Tam ekran modunda olup, çoklu ekran durumu varsa kural ihlali
+    if (isFullScreen && isScreenExtended) {
+      handleRuleBreak();
+      setExtendedBreach((prev) => prev + 1);
+      setIsButtonVisible(false);
+    }
+  }, [isScreenExtended, isFullScreen]);
 
-        setRuleBreakCount((prev) => prev + 1);
-
-        if (isFullScreenBreach || isScreenSizeBreach) {
-          setIsButtonVisible(true);
-          setFullScreenBreach((prev) => prev + 1);
-        } else {
-          setIsButtonVisible(false);
-        }
-        if (isFocusBreach) {
-          setFocusBreach((prev) => prev + 1);
-        }
-        if (isExtendedBreach) {
-          setExtendedBreach((prev) => prev + 1);
-        }
-      } else {
-        // Değişen bir şey yoksa, konsola bir mesaj yaz ve modalı kapat
-        onClose();
-        setReverseCounter(10);
-        clearInterval(intval.current);
-        intval.current = null;
-      }
+  useEffect(() => {
+    // Tam ekran modunda olup, ekran boyutu, odak ve çoklu ekran durumları uygunsa kural ihlali yok
+    if (
+      isFullScreen &&
+      document.fullscreenElement &&
+      defaultScreenSize.current.width === currentScreenSize.width &&
+      defaultScreenSize.current.height === currentScreenSize.height &&
+      hasFocus &&
+      !isScreenExtended
+    ) {
+      onClose();
+      setReverseCounter(10);
+      clearInterval(intval.current);
+      intval.current = null;
     }
   }, [isFullScreen, hasFocus, isScreenExtended, currentScreenSize]);
+
   // Geri sayım sıfır olduğunda interval'i temizleme
   useEffect(() => {
     if (reverseCounter === 0) {
@@ -221,8 +240,8 @@ function Main({ isClicked, isScreenExtended }) {
           {ruleBreakCount !== 0 ? (
             <>
               <Text>İhlal sayısı : {ruleBreakCount}</Text>
-              {fullScreenBreach !== 0 && (
-                <Text>Tam ekran ihlal sayısı : {fullScreenBreach}</Text>
+              {screenSizeBreach !== 0 && (
+                <Text>Ekran boyutu ihlal sayısı : {screenSizeBreach}</Text>
               )}
               {focusBreach !== 0 && (
                 <Text>Sınav odağı ihlal sayısı : {focusBreach}</Text>
