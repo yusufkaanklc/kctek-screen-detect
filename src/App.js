@@ -1,7 +1,7 @@
 import { Route, Routes, Link, Navigate } from "react-router-dom";
 import { useEffect, useState, useRef } from "react";
 import { Button, Flex, Text } from "@chakra-ui/react";
-import Main from "./Main.js";
+import Main from "./main.js";
 import ScreenRecord from "./ScreenRecord.js";
 
 function App() {
