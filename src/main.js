@@ -12,8 +12,15 @@ import {
   Box,
 } from "@chakra-ui/react";
 import "./App.css";
+import handleScreenRecord from "./ScreenRecord.js";
 
-function Main({ isClicked, isScreenExtended, defaultScreenSize }) {
+function Main({
+  isClicked,
+  isScreenExtended,
+  defaultScreenSize,
+  isScreenRecorded,
+  setIsScreenRecorded,
+}) {
   // Modal görünürlüğü için hook'u kullanma
   const { isOpen, onOpen, onClose } = useDisclosure();
 
@@ -77,9 +84,13 @@ function Main({ isClicked, isScreenExtended, defaultScreenSize }) {
 
     // F11 tuşuna basıldığında tam ekran modunu açma
     const handleF11Press = (event) => {
-      console.log("aaaaaa");
       if (event.key === "F11") {
         event.preventDefault();
+        // ESC tuşuna basıldığında tam ekran modunu kapatma
+        if (event.key === "Escape") {
+          return;
+        }
+
         // Eğer tam ekran modu kapalıysa, açma
         if (!document.fullscreenElement) {
           element.requestFullscreen().catch((err) => {
@@ -90,7 +101,6 @@ function Main({ isClicked, isScreenExtended, defaultScreenSize }) {
         }
       }
     };
-
     // F11 tuşu olayını dinleme
     window.addEventListener("keydown", handleF11Press);
   };
@@ -102,6 +112,9 @@ function Main({ isClicked, isScreenExtended, defaultScreenSize }) {
       document.documentElement.requestFullscreen().catch((err) => {
         console.error("Tam ekran hatası:", err);
       });
+    }
+    if (!isScreenRecorded) {
+      handleScreenRecord(setIsScreenRecorded);
     }
   };
 
@@ -116,6 +129,11 @@ function Main({ isClicked, isScreenExtended, defaultScreenSize }) {
     // Tam ekran değişikliğini ele alma
     const handleFullscreenChange = () => {
       setIsFullScreen(!!document.fullscreenElement);
+      if (!document.fullscreenElement) {
+        handleRuleBreak();
+        setFocusBreach((prev) => prev + 1);
+        setIsButtonVisible(true);
+      }
     };
 
     document.addEventListener("fullscreenchange", handleFullscreenChange);
@@ -153,10 +171,9 @@ function Main({ isClicked, isScreenExtended, defaultScreenSize }) {
         defaultScreenSize.current.height === currentScreenSize.height
       )
     ) {
-      console.log("def", defaultScreenSize.current, "cur", currentScreenSize);
       handleRuleBreak();
       setScreenSizeBreach((prev) => prev + 1);
-      setIsButtonVisible(true);
+      // setIsButtonVisible(false);
     }
   }, [currentScreenSize, isFullScreen]);
 
@@ -165,7 +182,7 @@ function Main({ isClicked, isScreenExtended, defaultScreenSize }) {
     if (isFullScreen && !hasFocus) {
       handleRuleBreak();
       setFocusBreach((prev) => prev + 1);
-      setIsButtonVisible(false);
+      // setIsButtonVisible(false);
     }
   }, [hasFocus, isFullScreen]);
 
@@ -174,9 +191,17 @@ function Main({ isClicked, isScreenExtended, defaultScreenSize }) {
     if (isFullScreen && isScreenExtended) {
       handleRuleBreak();
       setExtendedBreach((prev) => prev + 1);
-      setIsButtonVisible(false);
+      // setIsButtonVisible(false);
     }
   }, [isScreenExtended, isFullScreen]);
+
+  useEffect(() => {
+    if (isFullScreen && !isScreenRecorded) {
+      handleRuleBreak();
+      setRuleBreakCount((prev) => prev - 1);
+      setIsButtonVisible(true);
+    }
+  }, [isFullScreen, isScreenRecorded]);
 
   useEffect(() => {
     // Tam ekran modunda olup, ekran boyutu, odak ve çoklu ekran durumları uygunsa kural ihlali yok
@@ -225,11 +250,15 @@ function Main({ isClicked, isScreenExtended, defaultScreenSize }) {
               <ModalBody>
                 {isScreenExtended
                   ? `Dikkat birden çok ekran algılandı, ikincil ekranı ${reverseCounter} saniye içinde kapatın!`
+                  : !isScreenRecorded
+                  ? `Ekran kaydı durduruldu ${reverseCounter} içinde tekrar başlatın!`
                   : `Dikkat Sınav odağı bozuldu ${reverseCounter} içinde odaklanın!`}
               </ModalBody>
               <ModalFooter>
                 {isButtonVisible && (
-                  <Button onClick={() => modalButton()}>Sınava dön</Button>
+                  <Button onClick={() => modalButton()}>
+                    {!isScreenRecorded ? "Kaydı başlat" : "Sınava dön"}
+                  </Button>
                 )}
               </ModalFooter>
             </ModalContent>

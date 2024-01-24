@@ -1,6 +1,8 @@
-import { Route, Routes, Link } from "react-router-dom";
+import { Route, Routes, Link, Navigate } from "react-router-dom";
 import { useEffect, useState, useRef } from "react";
+import { Button, Flex, Text } from "@chakra-ui/react";
 import Main from "./Main.js";
+import ScreenRecord from "./ScreenRecord.js";
 
 function App() {
   const [isClicked, setIsClicked] = useState(false);
@@ -26,7 +28,6 @@ function App() {
 
   const fnBrowserDetect = () => {
     let isChrome;
-    console.log(navigator.userAgent);
     if (
       navigator.userAgent.includes("Chrome") &&
       !navigator.userAgent.includes("Edg") &&
@@ -43,25 +44,22 @@ function App() {
     return isChrome;
   };
 
-  const handleScreenRecord = async () => {
-    console.log("aaaa");
-    try {
-      const stream = await navigator.mediaDevices.getDisplayMedia({
-        video: { mediaSource: "screen" },
-      });
-      setIsScreenRecorded(true);
-      console.log("Ekran kaydı alındı:", stream);
-    } catch (error) {
-      setIsScreenRecorded(false);
-      console.error("Ekran kaydı alınırken bir hata oluştu:", error);
+  window.onload = function () {
+    handleScreenSize();
+    if (fnBrowserDetect()) {
+      !isScreenRecorded && ScreenRecord(setIsScreenRecorded);
     }
   };
 
-  window.onload = handleScreenRecord;
+  const handleUrl = () => {
+    if (window.location.pathname !== "/" && !isClicked) {
+      window.location.href = "/";
+    }
+  };
 
   useEffect(() => {
-    handleScreenSize();
     handleExtended();
+    handleUrl();
 
     // Resize olayını dinle
     window.screen.addEventListener("change", handleScreenSize);
@@ -78,39 +76,48 @@ function App() {
       <Route
         path="/"
         element={
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              height: "100vh",
-            }}
-          >
+          <Flex align={"center"} justify={"center"} h={"100vh"}>
             {fnBrowserDetect() ? (
               isScreenRecorded ? (
-                <Link to="/main" onClick={() => setIsClicked(true)}>
-                  Sınava Başlamak için tıkla
-                </Link>
+                isClicked ? (
+                  <Navigate to="/main" />
+                ) : (
+                  <Link to="/" onClick={() => setIsClicked(true)}>
+                    Sınava Girebilmek için lütfen tıklayın
+                  </Link>
+                )
               ) : (
-                <div>Ekran kaydına izin verin</div>
+                <Flex flexDirection={"column"} align={"flex-end"}>
+                  <Text>
+                    Sınava girebilmek için lütfen ekran kaydına izin verin
+                  </Text>
+                  <Button
+                    mt={2}
+                    onClick={() => {
+                      setIsScreenRecorded(false);
+                      ScreenRecord(setIsScreenRecorded);
+                    }}
+                  >
+                    izin ver
+                  </Button>
+                </Flex>
               )
             ) : (
-              <div>Lütfen Chrome tarayıcı ile girin</div>
+              <div>Sınava Girebilmek için lütfen Chrome tarayıcı ile girin</div>
             )}
-          </div>
+          </Flex>
         }
       />
       <Route
         path="/main"
         element={
-          fnBrowserDetect() &&
-          isScreenRecorded && (
-            <Main
-              isClicked={isClicked}
-              isScreenExtended={isScreenExtended}
-              defaultScreenSize={defaultScreenSize}
-            />
-          )
+          <Main
+            isClicked={isClicked}
+            isScreenExtended={isScreenExtended}
+            defaultScreenSize={defaultScreenSize}
+            isScreenRecorded={isScreenRecorded}
+            setIsScreenRecorded={setIsScreenRecorded}
+          />
         }
       />
     </Routes>
