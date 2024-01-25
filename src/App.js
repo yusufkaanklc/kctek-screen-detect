@@ -3,12 +3,16 @@ import { useEffect, useState, useRef } from "react";
 import { Button, Flex, Text } from "@chakra-ui/react";
 import Main from "./main.js";
 import ScreenRecord from "./ScreenRecord.js";
+import "./Debugger.js";
 
 function App() {
+  const [debuggerBool, setDebuggerBool] = useState(
+    window.devtoolsDetector.isOpen
+  );
+
   const [isClicked, setIsClicked] = useState(false);
   const [isScreenExtended, setIsScreenExtended] = useState(null);
   const [isScreenRecorded, setIsScreenRecorded] = useState(false);
-
   const defaultScreenSize = useRef({
     width: "",
     height: "",
@@ -34,7 +38,7 @@ function App() {
       !navigator.userAgent.includes("Firefox") &&
       !(
         navigator.userAgent.includes("Opera") ||
-        navigator.userAgent.includes("Opr")
+        navigator.userAgent.includes("OPR")
       )
     ) {
       isChrome = true;
@@ -64,7 +68,6 @@ function App() {
     // Resize olayını dinle
     window.screen.addEventListener("change", handleScreenSize);
     window.screen.addEventListener("change", handleExtended);
-
     return () => {
       window.screen.removeEventListener("change", handleScreenSize);
       window.screen.removeEventListener("change", handleExtended);
@@ -117,6 +120,8 @@ function App() {
             defaultScreenSize={defaultScreenSize}
             isScreenRecorded={isScreenRecorded}
             setIsScreenRecorded={setIsScreenRecorded}
+            debuggerBool={debuggerBool}
+            setDebuggerBool={setDebuggerBool}
           />
         }
       />
