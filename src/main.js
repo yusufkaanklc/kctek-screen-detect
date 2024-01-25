@@ -17,7 +17,6 @@ import handleScreenRecord from "./ScreenRecord.js";
 function Main({
   isClicked,
   isScreenExtended,
-  defaultScreenSize,
   isScreenRecorded,
   setIsScreenRecorded,
   debuggerBool,
@@ -46,13 +45,11 @@ function Main({
   // Kural ihlali sayıları
   const [ruleBreakCount, setRuleBreakCount] = useState(0);
   const [isButtonVisible, setIsButtonVisible] = useState(false);
-  const [screenSizeBreach, setScreenSizeBreach] = useState(0);
   const [focusBreach, setFocusBreach] = useState(0);
   const [extendedBreach, setExtendedBreach] = useState(0);
 
   const [screenExtendedFlag, setScreenExtendedFlag] = useState(false);
   const [screenRecordedFlag, setScreenRecordedFlag] = useState(false);
-  const [fullScreenFlag, setFullScreenFlag] = useState(false);
   const [focusFlag, setFocusFlag] = useState(false);
 
   // Pencere boyutu değişikliği durumunu ele alma
@@ -174,39 +171,19 @@ function Main({
   };
 
   // Kural ihlali durumlarını ele alan useEffect'ler
-  useEffect(() => {
-    // Tam ekran modunda olup, ekran boyutu değişikliği durumu varsa kural ihlali
-    if (
-      isFullScreen &&
-      !(
-        defaultScreenSize.current.width === currentScreenSize.width &&
-        defaultScreenSize.current.height === currentScreenSize.height
-      )
-    ) {
-      handleRuleBreak();
-      setScreenSizeBreach((prev) => prev + 1);
-      setIsButtonVisible(false);
-
-      // Diğer kural bayraklarını sıfırla
-      setScreenExtendedFlag(false);
-      setScreenRecordedFlag(false);
-      setFullScreenFlag(false);
-      setFocusFlag(true);
-    }
-  }, [currentScreenSize, isFullScreen]);
 
   useEffect(() => {
     // Tam ekran modunda olup, ekran boyutu değişikliği durumu varsa kural ihlali
     if (isFullScreen && !document.fullscreenElement) {
       handleRuleBreak();
-      //setFocusBreach((prev) => prev + 1);
+      setRuleBreakCount((prev) => prev - 1);
       setIsButtonVisible(true);
 
       // Diğer kural bayraklarını sıfırla
       setScreenExtendedFlag(false);
       setScreenRecordedFlag(false);
-      setFullScreenFlag(true);
-      setFocusFlag(false);
+
+      setFocusFlag(true);
     }
   }, [currentScreenSize, isFullScreen]);
 
@@ -221,7 +198,6 @@ function Main({
       setScreenExtendedFlag(false);
       setScreenRecordedFlag(false);
       setFocusFlag(true);
-      setFullScreenFlag(false);
     }
   }, [hasFocus, isFullScreen]);
 
@@ -234,7 +210,6 @@ function Main({
 
       // Diğer kural bayraklarını sıfırla
       setScreenRecordedFlag(false);
-      setFullScreenFlag(false);
       setFocusFlag(false);
       setScreenExtendedFlag(true);
     }
@@ -243,38 +218,35 @@ function Main({
   useEffect(() => {
     if (!isScreenRecorded) {
       handleRuleBreak();
-      setRuleBreakCount((prev) => prev - 1);
+      setRuleBreakCount((prev) => prev + 1);
       setIsButtonVisible(true);
 
       // Diğer kural bayraklarını sıfırla
       setScreenExtendedFlag(false);
-      setFullScreenFlag(false);
       setFocusFlag(false);
       setScreenRecordedFlag(true);
     }
   }, [isScreenRecorded]);
 
   useEffect(() => {
-    if (debuggerBool) {
+    console.log("debuggerBool", debuggerBool);
+    if (isFullScreen && debuggerBool) {
       handleRuleBreak();
       setIsButtonVisible(false);
       setFocusBreach((prev) => prev + 1);
 
       // Diğer kural bayraklarını sıfırla
       setScreenExtendedFlag(false);
-      setFullScreenFlag(false);
       setFocusFlag(true);
       setScreenRecordedFlag(false);
     }
-  }, [debuggerBool]);
+  }, [debuggerBool, isFullScreen]);
 
   useEffect(() => {
     // Tam ekran modunda olup, ekran boyutu, odak ve çoklu ekran durumları uygunsa kural ihlali yok
     if (
       isFullScreen &&
       document.fullscreenElement &&
-      defaultScreenSize.current.width === currentScreenSize.width &&
-      defaultScreenSize.current.height === currentScreenSize.height &&
       hasFocus &&
       !isScreenExtended &&
       !debuggerBool
@@ -285,7 +257,6 @@ function Main({
       intval.current = null;
 
       setScreenExtendedFlag(false);
-      setFullScreenFlag(false);
       setFocusFlag(false);
       setScreenRecordedFlag(false);
     }
@@ -329,8 +300,6 @@ function Main({
                   `Dikkat birden çok ekran algılandı, ikincil ekranı ${reverseCounter} saniye içinde kapatın!`}
                 {screenRecordedFlag &&
                   `Ekran kaydı durduruldu ${reverseCounter} saniye içinde tekrar başlatın!`}
-                {fullScreenFlag &&
-                  `Tam ekrandan çıkıldı ${reverseCounter} saniye içinde tam ekrana alın! `}
                 {focusFlag &&
                   `Dikkat Sınav odağı bozuldu ${reverseCounter} saniye içinde odaklanın!`}
               </ModalBody>
@@ -349,9 +318,6 @@ function Main({
           {ruleBreakCount !== 0 ? (
             <>
               <Text>İhlal sayısı : {ruleBreakCount}</Text>
-              {screenSizeBreach !== 0 && (
-                <Text>Ekran boyutu ihlal sayısı : {screenSizeBreach}</Text>
-              )}
               {focusBreach !== 0 && (
                 <Text>Sınav odağı ihlal sayısı : {focusBreach}</Text>
               )}

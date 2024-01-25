@@ -13,21 +13,10 @@ function App() {
   const [isClicked, setIsClicked] = useState(false);
   const [isScreenExtended, setIsScreenExtended] = useState(null);
   const [isScreenRecorded, setIsScreenRecorded] = useState(false);
-  const defaultScreenSize = useRef({
-    width: "",
-    height: "",
-  });
 
   const handleExtended = () => {
     const element = window.screen.isExtended;
     setIsScreenExtended(element);
-  };
-
-  const handleScreenSize = () => {
-    defaultScreenSize.current = {
-      width: window.screen.width,
-      height: window.screen.height,
-    };
   };
 
   const fnBrowserDetect = () => {
@@ -49,7 +38,6 @@ function App() {
   };
 
   window.onload = function () {
-    handleScreenSize();
     if (fnBrowserDetect()) {
       !isScreenRecorded && ScreenRecord(setIsScreenRecorded);
     }
@@ -66,10 +54,9 @@ function App() {
     handleUrl();
 
     // Resize olayını dinle
-    window.screen.addEventListener("change", handleScreenSize);
+
     window.screen.addEventListener("change", handleExtended);
     return () => {
-      window.screen.removeEventListener("change", handleScreenSize);
       window.screen.removeEventListener("change", handleExtended);
     };
   }, []);
@@ -117,7 +104,6 @@ function App() {
           <Main
             isClicked={isClicked}
             isScreenExtended={isScreenExtended}
-            defaultScreenSize={defaultScreenSize}
             isScreenRecorded={isScreenRecorded}
             setIsScreenRecorded={setIsScreenRecorded}
             debuggerBool={debuggerBool}
