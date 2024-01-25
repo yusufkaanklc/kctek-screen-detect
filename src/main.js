@@ -48,6 +48,11 @@ function Main({
   const [focusBreach, setFocusBreach] = useState(0);
   const [extendedBreach, setExtendedBreach] = useState(0);
 
+  const [screenExtendedFlag, setScreenExtendedFlag] = useState(false);
+  const [screenRecordedFlag, setScreenRecordedFlag] = useState(false);
+  const [fullScreenFlag, setFullScreenFlag] = useState(false);
+  const [focusFlag, setFocusFlag] = useState(false);
+
   // Pencere boyutu değişikliği durumunu ele alma
   const handleResize = () => {
     setCurrentScreenSize({
@@ -173,7 +178,13 @@ function Main({
     ) {
       handleRuleBreak();
       setScreenSizeBreach((prev) => prev + 1);
-      // setIsButtonVisible(false);
+      setIsButtonVisible(false);
+
+      // Diğer kural bayraklarını sıfırla
+      setScreenExtendedFlag(false);
+      setScreenRecordedFlag(false);
+      setFullScreenFlag(false);
+      setFocusFlag(true);
     }
   }, [currentScreenSize, isFullScreen]);
 
@@ -182,7 +193,13 @@ function Main({
     if (isFullScreen && !hasFocus) {
       handleRuleBreak();
       setFocusBreach((prev) => prev + 1);
-      // setIsButtonVisible(false);
+      setIsButtonVisible(false);
+
+      // Diğer kural bayraklarını sıfırla
+      setScreenExtendedFlag(false);
+      setScreenRecordedFlag(false);
+      setFocusFlag(true);
+      setFullScreenFlag(false);
     }
   }, [hasFocus, isFullScreen]);
 
@@ -191,7 +208,13 @@ function Main({
     if (isFullScreen && isScreenExtended) {
       handleRuleBreak();
       setExtendedBreach((prev) => prev + 1);
-      // setIsButtonVisible(false);
+      setIsButtonVisible(false);
+
+      // Diğer kural bayraklarını sıfırla
+      setScreenRecordedFlag(false);
+      setFullScreenFlag(false);
+      setFocusFlag(false);
+      setScreenExtendedFlag(true);
     }
   }, [isScreenExtended, isFullScreen]);
 
@@ -200,6 +223,12 @@ function Main({
       handleRuleBreak();
       setRuleBreakCount((prev) => prev - 1);
       setIsButtonVisible(true);
+
+      // Diğer kural bayraklarını sıfırla
+      setScreenExtendedFlag(false);
+      setFullScreenFlag(false);
+      setFocusFlag(false);
+      setScreenRecordedFlag(true);
     }
   }, [isFullScreen, isScreenRecorded]);
 
@@ -217,6 +246,11 @@ function Main({
       setReverseCounter(10);
       clearInterval(intval.current);
       intval.current = null;
+
+      setScreenExtendedFlag(false);
+      setFullScreenFlag(false);
+      setFocusFlag(false);
+      setScreenRecordedFlag(false);
     }
   }, [isFullScreen, hasFocus, isScreenExtended, currentScreenSize]);
 
@@ -248,16 +282,24 @@ function Main({
             <ModalOverlay />
             <ModalContent>
               <ModalBody>
-                {isScreenExtended
+                {/* {isScreenExtended
                   ? `Dikkat birden çok ekran algılandı, ikincil ekranı ${reverseCounter} saniye içinde kapatın!`
                   : !isScreenRecorded
                   ? `Ekran kaydı durduruldu ${reverseCounter} içinde tekrar başlatın!`
-                  : `Dikkat Sınav odağı bozuldu ${reverseCounter} içinde odaklanın!`}
+                  : `Dikkat Sınav odağı bozuldu ${reverseCounter} içinde odaklanın!`} */}
+                {screenExtendedFlag &&
+                  `Dikkat birden çok ekran algılandı, ikincil ekranı ${reverseCounter} saniye içinde kapatın!`}
+                {screenRecordedFlag &&
+                  `Ekran kaydı durduruldu ${reverseCounter} saniye içinde tekrar başlatın!`}
+                {fullScreenFlag &&
+                  `Tam ekrandan çıkıldı ${reverseCounter} saniye içinde tam ekrana alın! `}
+                {focusFlag &&
+                  `Dikkat Sınav odağı bozuldu ${reverseCounter} saniye içinde odaklanın!`}
               </ModalBody>
               <ModalFooter>
                 {isButtonVisible && (
                   <Button onClick={() => modalButton()}>
-                    {!isScreenRecorded ? "Kaydı başlat" : "Sınava dön"}
+                    {screenRecordedFlag ? "Kaydı başlat" : "Sınava dön"}
                   </Button>
                 )}
               </ModalFooter>
