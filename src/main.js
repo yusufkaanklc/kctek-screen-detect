@@ -189,6 +189,21 @@ function Main({
   }, [currentScreenSize, isFullScreen]);
 
   useEffect(() => {
+    // Tam ekran modunda olup, ekran boyutu değişikliği durumu varsa kural ihlali
+    if (isFullScreen && !document.fullscreenElement) {
+      handleRuleBreak();
+      setFocusBreach((prev) => prev + 1);
+      setIsButtonVisible(true);
+
+      // Diğer kural bayraklarını sıfırla
+      setScreenExtendedFlag(false);
+      setScreenRecordedFlag(false);
+      setFullScreenFlag(true);
+      setFocusFlag(false);
+    }
+  }, [currentScreenSize, isFullScreen]);
+
+  useEffect(() => {
     // Tam ekran modunda olup, odak kaybı durumu varsa kural ihlali
     if (isFullScreen && !hasFocus) {
       handleRuleBreak();
