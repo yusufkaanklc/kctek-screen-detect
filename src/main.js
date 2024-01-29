@@ -19,6 +19,7 @@ function Main({
   isScreenExtended,
   isScreenRecorded,
   setIsScreenRecorded,
+  isDevToolsOpen,
 }) {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [currentScreenSize, setCurrentScreenSize] = useState({
@@ -106,7 +107,7 @@ function Main({
 
     const handleFullscreenChange = () => {
       setIsFullScreen(!!document.fullscreenElement);
-      if (!document.fullscreenElement && !isFinished) {
+      if (!document.fullscreenElement) {
         handleRuleBreak();
         setFocusBreach((prev) => prev + 1);
         setIsButtonVisible(true);
@@ -158,6 +159,10 @@ function Main({
   }, [isFinished]);
 
   useEffect(() => {
+    console.log(isClicked);
+  }, [isClicked]);
+
+  useEffect(() => {
     if (
       isFullScreen &&
       !hasFocus &&
@@ -165,12 +170,14 @@ function Main({
       !screenExtendedFlag &&
       !isFinished
     ) {
-      handleRuleBreak();
-      setFocusBreach((prev) => prev + 1);
-      setIsButtonVisible(false);
-      setScreenExtendedFlag(false);
-      setScreenRecordedFlag(false);
-      setFocusFlag(true);
+      if (!focusFlag) {
+        handleRuleBreak();
+        setFocusBreach((prev) => prev + 1);
+        setIsButtonVisible(false);
+        setScreenExtendedFlag(false);
+        setScreenRecordedFlag(false);
+        setFocusFlag(true);
+      }
     }
   }, [hasFocus, isFullScreen]);
 
@@ -182,25 +189,35 @@ function Main({
       !focusFlag &&
       !isFinished
     ) {
-      handleRuleBreak();
-      setExtendedBreach((prev) => prev + 1);
-      setIsButtonVisible(false);
-      setScreenRecordedFlag(false);
-      setFocusFlag(false);
-      setScreenExtendedFlag(true);
+      if (!screenExtendedFlag) {
+        handleRuleBreak();
+        setExtendedBreach((prev) => prev + 1);
+        setIsButtonVisible(false);
+        setScreenRecordedFlag(false);
+        setFocusFlag(false);
+        setScreenExtendedFlag(true);
+      }
     }
   }, [isScreenExtended, isFullScreen]);
 
   useEffect(() => {
     if (!isScreenRecorded && !focusFlag && !screenExtendedFlag && !isFinished) {
-      handleRuleBreak();
-      setRuleBreakCount((prev) => prev - 1);
-      setIsButtonVisible(true);
-      setScreenExtendedFlag(false);
-      setFocusFlag(false);
-      setScreenRecordedFlag(true);
+      if (!screenRecordedFlag) {
+        handleRuleBreak();
+        setRuleBreakCount((prev) => prev - 1);
+        setIsButtonVisible(true);
+        setScreenExtendedFlag(false);
+        setFocusFlag(false);
+        setScreenRecordedFlag(true);
+      }
     }
   }, [isScreenRecorded]);
+
+  useEffect(() => {
+    if (isDevToolsOpen === 1 && !isFinished) {
+      setIsFinished(true);
+    }
+  }, [isDevToolsOpen, isFinished]);
 
   useEffect(() => {
     if (
@@ -239,7 +256,7 @@ function Main({
           left={0}
         >
           <Modal
-            isOpen={isOpen}
+            isOpen={isOpen && !isFinished}
             onRequestClose={onClose}
             closeOnOverlayClick={false}
           >
@@ -258,11 +275,7 @@ function Main({
               </ModalBody>
               <ModalFooter p={6}>
                 {isButtonVisible && !isFinished && (
-                  <Button
-                    onClick={() => modalButton()}
-                    variant={"outline"}
-                    colorScheme="red"
-                  >
+                  <Button onClick={() => modalButton()} colorScheme="red">
                     {screenRecordedFlag ? "Kaydı başlat" : "Sınava dön"}
                   </Button>
                 )}
@@ -285,7 +298,7 @@ function Main({
               boxShadow={"0 0 20px 0 rgba(0, 0, 0, 0.1)"}
               textAlign={"center"}
             >
-              <Text fontWeight={500}>
+              <Text fontWeight={500} color={"black"}>
                 {isFinished
                   ? "Sınavınız kural ihlalinden dolayı iptal edilmiştir!"
                   : ruleBreakCount === 0 &&
@@ -305,6 +318,7 @@ function Main({
                       <Text
                         fontWeight={500}
                         mt={!focusFlag && !screenExtendedFlag ? 3 : ""}
+                        color={"black"}
                       >
                         Toplam ihlal sayısı: {ruleBreakCount} / 3
                       </Text>

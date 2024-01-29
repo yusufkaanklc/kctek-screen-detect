@@ -9,7 +9,7 @@ function App() {
   const [isClicked, setIsClicked] = useState(false);
   const [isScreenExtended, setIsScreenExtended] = useState(null);
   const [isScreenRecorded, setIsScreenRecorded] = useState(false);
-  const [isDevToolsOpen, setIsDevToolsOpen] = useState(false);
+  const [isDevToolsOpen, setIsDevToolsOpen] = useState(0);
 
   // Ekran uzatma durumunu ele alan fonksiyon
   const handleExtended = () => {
@@ -27,11 +27,9 @@ function App() {
 
       const isOpen = end - start > threshold;
 
-      if (isOpen) {
-        setIsDevToolsOpen(isOpen);
-      } else {
-        setIsDevToolsOpen(isOpen);
-      }
+      isOpen &&
+        window.location.pathname === "/main" &&
+        setIsDevToolsOpen((prev) => prev + 1);
     }, 500);
   }
 
@@ -63,6 +61,7 @@ function App() {
 
   useEffect(() => {
     checkDevTools();
+    handleExtended();
     // Ekran değişikliği olayını dinlemek için event listener ekleniyor
     window.screen.addEventListener("change", handleExtended);
 
@@ -83,8 +82,7 @@ function App() {
             isScreenRecorded,
             isClicked,
             setIsClicked,
-            setIsScreenRecorded,
-            isDevToolsOpen
+            setIsScreenRecorded
           )}
         />
         <Route
@@ -95,6 +93,7 @@ function App() {
               isScreenExtended={isScreenExtended}
               isScreenRecorded={isScreenRecorded}
               setIsScreenRecorded={setIsScreenRecorded}
+              isDevToolsOpen={isDevToolsOpen}
             />
           }
         />
@@ -128,32 +127,31 @@ const linkPage = (
               isClicked ? (
                 // Zaten tıklandıysa ana sayfaya yönlendir
                 <Navigate to="/main" />
-              ) : isDevToolsOpen ? (
-                <Text fontWeight={"500"}>
+              ) : isDevToolsOpen > 0 ? (
+                <Text fontWeight={"500"} color={"black"}>
                   Sınava Girebilmek için geliştirici konsolunu kapatın
                 </Text>
               ) : (
                 // Tıklama başlatmak için bağlantıyı göster
                 <Link to="/" onClick={() => setIsClicked(true)}>
-                  <Text fontWeight={"500"}>
+                  <Text fontWeight={"500"} color={"black"}>
                     Sınava Girebilmek için lütfen tıklayın
                   </Text>
                 </Link>
               )
             ) : (
-              <Text fontWeight={"500"}>
+              <Text fontWeight={"500"} color={"black"}>
                 Sınava girebilmek için lütfen ekran kaydına izin verin
               </Text>
             )
           ) : (
-            <Text fontWeight={"500"}>
+            <Text fontWeight={"500"} color={"black"}>
               Sınava Girebilmek için lütfen Chrome tarayıcı ile girin
             </Text>
           )}
 
           {!isScreenRecorded && (
             <Button
-              variant={"outline"}
               colorScheme="green"
               mt={6}
               onClick={() => {
