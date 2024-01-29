@@ -22,37 +22,23 @@ function Main({
   debuggerBool,
   setDebuggerBool,
 }) {
-  // Modal görünürlüğü için hook'u kullanma
   const { isOpen, onOpen, onClose } = useDisclosure();
-
-  // Ekran boyutu varsayılan değerlerini tutmak için useRef kullanma
-
-  // Ekran boyutu durumu için state ve başlangıç değeri
   const [currentScreenSize, setCurrentScreenSize] = useState({
     width: "",
     height: "",
   });
-
-  // Tarayıcı penceresinin odaklanma durumu
   const [hasFocus, setHasFocus] = useState(true);
-
-  // Tam ekran durumu
   const [isFullScreen, setIsFullScreen] = useState(false);
-
-  // Geri sayım için kullanılan state
   const [reverseCounter, setReverseCounter] = useState(10);
-
-  // Kural ihlali sayıları
   const [ruleBreakCount, setRuleBreakCount] = useState(0);
   const [isButtonVisible, setIsButtonVisible] = useState(false);
   const [focusBreach, setFocusBreach] = useState(0);
   const [extendedBreach, setExtendedBreach] = useState(0);
-
   const [screenExtendedFlag, setScreenExtendedFlag] = useState(false);
   const [screenRecordedFlag, setScreenRecordedFlag] = useState(false);
   const [focusFlag, setFocusFlag] = useState(false);
+  const [isFinished, setIsFinished] = useState(false);
 
-  // Pencere boyutu değişikliği durumunu ele alma
   const handleResize = () => {
     setCurrentScreenSize({
       width: window.innerWidth,
@@ -60,42 +46,34 @@ function Main({
     });
   };
 
-  // Pencere odak kaybını ele alma
   const handleBlur = () => {
     setHasFocus(false);
   };
 
-  // Pencere odak kazanımını ele alma
   const handleFocus = () => {
     setHasFocus(true);
   };
 
-  // Tam ekran modunu açma
   const openFullScreen = () => {
     const element = document.documentElement;
 
     if (!document.fullscreenElement) {
       if (!isClicked) {
-        // Eğer tıklanmadıysa, ana sayfaya yönlendirme
         window.location.href = "/";
         return;
       }
-      // Tam ekran modunu açma
       element.requestFullscreen().catch((err) => {
         console.error("Tam ekran hatası:", err);
       });
     }
 
-    // F11 tuşuna basıldığında tam ekran modunu açma
     const handleF11Press = (event) => {
       if (event.key === "F11") {
         event.preventDefault();
-        // ESC tuşuna basıldığında tam ekran modunu kapatma
         if (event.key === "Escape") {
           return;
         }
 
-        // Eğer tam ekran modu kapalıysa, açma
         if (!document.fullscreenElement) {
           element.requestFullscreen().catch((err) => {
             console.error("Tam ekran hatası:", err);
@@ -105,24 +83,22 @@ function Main({
         }
       }
     };
-    // F11 tuşu olayını dinleme
+
     window.addEventListener("keydown", handleF11Press);
   };
 
-  // Modal içindeki butona tıklama olayı
   const modalButton = () => {
     if (!document.fullscreenElement) {
-      // Tam ekran modunu açma
       document.documentElement.requestFullscreen().catch((err) => {
         console.error("Tam ekran hatası:", err);
       });
     }
     if (!isScreenRecorded) {
+      setRuleBreakCount((prev) => prev - 1);
       handleScreenRecord(setIsScreenRecorded);
     }
   };
 
-  // Komponentin monte edilmesi ve demonte edilmesini ele alma
   useEffect(() => {
     let timer = setInterval(() => {
       setDebuggerBool(window.devtoolsDetector.isOpen);
@@ -134,13 +110,19 @@ function Main({
     window.addEventListener("blur", handleBlur);
     window.addEventListener("focus", handleFocus);
 
-    // Tam ekran değişikliğini ele alma
+    /**
+     * @returns Array
+     * @number ASd
+     */
     const handleFullscreenChange = () => {
       setIsFullScreen(!!document.fullscreenElement);
       if (!document.fullscreenElement) {
         handleRuleBreak();
         setFocusBreach((prev) => prev + 1);
         setIsButtonVisible(true);
+        setScreenRecordedFlag(false);
+        setFocusFlag(true);
+        setScreenExtendedFlag(false);
       }
     };
 
@@ -155,7 +137,6 @@ function Main({
     };
   }, []);
 
-  // Kural ihlali durumu için genel useEffect
   const intval = useRef(null);
 
   const handleRuleBreak = () => {
@@ -170,31 +151,33 @@ function Main({
     setRuleBreakCount((prev) => prev + 1);
   };
 
-  // Kural ihlali durumlarını ele alan useEffect'ler
-
   useEffect(() => {
-    // Tam ekran modunda olup, ekran boyutu değişikliği durumu varsa kural ihlali
-    if (isFullScreen && !document.fullscreenElement) {
-      handleRuleBreak();
-      setRuleBreakCount((prev) => prev - 1);
-      setIsButtonVisible(true);
-
-      // Diğer kural bayraklarını sıfırla
-      setScreenExtendedFlag(false);
-      setScreenRecordedFlag(false);
-
-      setFocusFlag(true);
+    if (ruleBreakCount === 3) {
+      setIsFinished(true);
     }
-  }, [currentScreenSize, isFullScreen]);
+  }, [ruleBreakCount]);
 
   useEffect(() => {
-    // Tam ekran modunda olup, odak kaybı durumu varsa kural ihlali
-    if (isFullScreen && !hasFocus) {
+    if (reverseCounter === 0) {
+      setIsFinished(true);
+      clearInterval(intval.current);
+    }
+  }, [reverseCounter]);
+
+  useEffect(() => {
+    //if (isFinished) onClose();
+  }, [isFinished]);
+
+  useEffect(() => {
+    if (
+      isFullScreen &&
+      !hasFocus &&
+      !screenRecordedFlag &&
+      !screenExtendedFlag
+    ) {
       handleRuleBreak();
       setFocusBreach((prev) => prev + 1);
       setIsButtonVisible(false);
-
-      // Diğer kural bayraklarını sıfırla
       setScreenExtendedFlag(false);
       setScreenRecordedFlag(false);
       setFocusFlag(true);
@@ -202,13 +185,10 @@ function Main({
   }, [hasFocus, isFullScreen]);
 
   useEffect(() => {
-    // Tam ekran modunda olup, çoklu ekran durumu varsa kural ihlali
-    if (isFullScreen && isScreenExtended) {
+    if (isFullScreen && isScreenExtended && !screenRecordedFlag && !focusFlag) {
       handleRuleBreak();
       setExtendedBreach((prev) => prev + 1);
       setIsButtonVisible(false);
-
-      // Diğer kural bayraklarını sıfırla
       setScreenRecordedFlag(false);
       setFocusFlag(false);
       setScreenExtendedFlag(true);
@@ -216,12 +196,10 @@ function Main({
   }, [isScreenExtended, isFullScreen]);
 
   useEffect(() => {
-    if (!isScreenRecorded) {
+    if (!isScreenRecorded && !focusFlag && !screenExtendedFlag) {
       handleRuleBreak();
-      setRuleBreakCount((prev) => prev + 1);
+      setRuleBreakCount((prev) => prev - 1);
       setIsButtonVisible(true);
-
-      // Diğer kural bayraklarını sıfırla
       setScreenExtendedFlag(false);
       setFocusFlag(false);
       setScreenRecordedFlag(true);
@@ -229,13 +207,14 @@ function Main({
   }, [isScreenRecorded]);
 
   useEffect(() => {
-    console.log("debuggerBool", debuggerBool);
-    if (isFullScreen && debuggerBool) {
+    if (
+      debuggerBool &&
+      !focusFlag &&
+      !screenRecordedFlag &&
+      !screenExtendedFlag
+    ) {
       handleRuleBreak();
       setIsButtonVisible(false);
-      setFocusBreach((prev) => prev + 1);
-
-      // Diğer kural bayraklarını sıfırla
       setScreenExtendedFlag(false);
       setFocusFlag(true);
       setScreenRecordedFlag(false);
@@ -243,19 +222,18 @@ function Main({
   }, [debuggerBool, isFullScreen]);
 
   useEffect(() => {
-    // Tam ekran modunda olup, ekran boyutu, odak ve çoklu ekran durumları uygunsa kural ihlali yok
     if (
       isFullScreen &&
       document.fullscreenElement &&
       hasFocus &&
       !isScreenExtended &&
-      !debuggerBool
+      !debuggerBool &&
+      isScreenRecorded
     ) {
       onClose();
       setReverseCounter(10);
       clearInterval(intval.current);
       intval.current = null;
-
       setScreenExtendedFlag(false);
       setFocusFlag(false);
       setScreenRecordedFlag(false);
@@ -264,18 +242,11 @@ function Main({
     isFullScreen,
     hasFocus,
     isScreenExtended,
+    isScreenRecorded,
     currentScreenSize,
     debuggerBool,
   ]);
 
-  // Geri sayım sıfır olduğunda interval'i temizleme
-  useEffect(() => {
-    if (reverseCounter === 0) {
-      clearInterval(intval.current);
-    }
-  }, [reverseCounter]);
-
-  // Ana bileşen render'ı
   return (
     <>
       <Box position={"relative"}>
@@ -283,11 +254,11 @@ function Main({
           justifyContent={"center"}
           alignItems={"center"}
           height={"100vh"}
+          bg={"#E8E8E8"}
           position={"relative"}
           top={0}
           left={0}
         >
-          {/* Modal bileşeni */}
           <Modal
             isOpen={isOpen}
             onRequestClose={onClose}
@@ -295,17 +266,21 @@ function Main({
           >
             <ModalOverlay />
             <ModalContent>
-              <ModalBody>
+              <ModalBody px={6} pt={6} fontWeight={500}>
                 {screenExtendedFlag &&
-                  `Dikkat birden çok ekran algılandı, ikincil ekranı ${reverseCounter} saniye içinde kapatın!`}
+                  `Dikkat! Birden çok ekran algılandı, ikincil ekranı ${reverseCounter} saniye içinde kapatın!`}
                 {screenRecordedFlag &&
-                  `Ekran kaydı durduruldu ${reverseCounter} saniye içinde tekrar başlatın!`}
+                  `Dikkat! Ekran kaydı durduruldu, ${reverseCounter} saniye içinde tekrar başlatın!`}
                 {focusFlag &&
-                  `Dikkat Sınav odağı bozuldu ${reverseCounter} saniye içinde odaklanın!`}
+                  `Dikkat! Sınav odağı bozuldu, ${reverseCounter} saniye içinde odaklanın!`}
               </ModalBody>
-              <ModalFooter>
+              <ModalFooter p={6}>
                 {isButtonVisible && (
-                  <Button onClick={() => modalButton()}>
+                  <Button
+                    onClick={() => modalButton()}
+                    variant={"outline"}
+                    colorScheme="red"
+                  >
                     {screenRecordedFlag ? "Kaydı başlat" : "Sınava dön"}
                   </Button>
                 )}
@@ -313,21 +288,48 @@ function Main({
             </ModalContent>
           </Modal>
         </Flex>
-        <Box position={"absolute"} top={"10%"} left={"10px"}>
-          {/* Kural ihlali sayısını gösterme */}
-          {ruleBreakCount !== 0 ? (
-            <>
-              <Text>İhlal sayısı : {ruleBreakCount}</Text>
-              {focusBreach !== 0 && (
-                <Text>Sınav odağı ihlal sayısı : {focusBreach}</Text>
-              )}
-              {extendedBreach !== 0 && (
-                <Text>Çoklu ekran ihlal sayısı : {extendedBreach}</Text>
-              )}
-            </>
-          ) : (
-            <Text>Herhangi bir ihlal yok devam edebilirsiniz</Text>
-          )}
+        <Box position={"absolute"} top={0} left={0} zIndex={1}>
+          <Flex
+            justify={"center"}
+            height={"100vh"}
+            w={"100vw"}
+            flexDir={"column"}
+            align={"center"}
+          >
+            <Box
+              bg={"white"}
+              p={6}
+              borderRadius={"10"}
+              boxShadow={"0 0 20px 0 rgba(0, 0, 0, 0.1)"}
+              textAlign={"center"}
+            >
+              <Text fontWeight={500}>
+                {isFinished
+                  ? "Sınavınız kural ihlalinden dolayı iptal edilmiştir!"
+                  : ruleBreakCount === 0 &&
+                    focusBreach === 0 &&
+                    extendedBreach === 0
+                  ? "Herhangi bir ihlal yok, sınava devam edebilirsiniz"
+                  : !focusFlag && !screenExtendedFlag
+                  ? "Sınava devam edebilirsiniz"
+                  : ""}
+              </Text>
+              {isFinished
+                ? ""
+                : (ruleBreakCount !== 0 ||
+                    focusBreach !== 0 ||
+                    extendedBreach !== 0) && (
+                    <>
+                      <Text
+                        fontWeight={500}
+                        mt={!focusFlag && !screenExtendedFlag ? 3 : ""}
+                      >
+                        Toplam ihlal sayısı: {ruleBreakCount} / 3
+                      </Text>
+                    </>
+                  )}
+            </Box>
+          </Flex>
         </Box>
       </Box>
     </>
