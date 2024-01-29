@@ -19,8 +19,6 @@ function Main({
   isScreenExtended,
   isScreenRecorded,
   setIsScreenRecorded,
-  debuggerBool,
-  setDebuggerBool,
 }) {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [currentScreenSize, setCurrentScreenSize] = useState({
@@ -100,23 +98,15 @@ function Main({
   };
 
   useEffect(() => {
-    let timer = setInterval(() => {
-      setDebuggerBool(window.devtoolsDetector.isOpen);
-    }, 500);
-
     openFullScreen();
     handleResize();
     window.addEventListener("resize", handleResize);
     window.addEventListener("blur", handleBlur);
     window.addEventListener("focus", handleFocus);
 
-    /**
-     * @returns Array
-     * @number ASd
-     */
     const handleFullscreenChange = () => {
       setIsFullScreen(!!document.fullscreenElement);
-      if (!document.fullscreenElement) {
+      if (!document.fullscreenElement && !isFinished) {
         handleRuleBreak();
         setFocusBreach((prev) => prev + 1);
         setIsButtonVisible(true);
@@ -129,7 +119,6 @@ function Main({
     document.addEventListener("fullscreenchange", handleFullscreenChange);
 
     return () => {
-      clearInterval(timer);
       window.removeEventListener("resize", handleResize);
       window.removeEventListener("blur", handleBlur);
       window.removeEventListener("focus", handleFocus);
@@ -165,7 +154,7 @@ function Main({
   }, [reverseCounter]);
 
   useEffect(() => {
-    //if (isFinished) onClose();
+    if (isFinished) onClose();
   }, [isFinished]);
 
   useEffect(() => {
@@ -173,7 +162,8 @@ function Main({
       isFullScreen &&
       !hasFocus &&
       !screenRecordedFlag &&
-      !screenExtendedFlag
+      !screenExtendedFlag &&
+      !isFinished
     ) {
       handleRuleBreak();
       setFocusBreach((prev) => prev + 1);
@@ -185,7 +175,13 @@ function Main({
   }, [hasFocus, isFullScreen]);
 
   useEffect(() => {
-    if (isFullScreen && isScreenExtended && !screenRecordedFlag && !focusFlag) {
+    if (
+      isFullScreen &&
+      isScreenExtended &&
+      !screenRecordedFlag &&
+      !focusFlag &&
+      !isFinished
+    ) {
       handleRuleBreak();
       setExtendedBreach((prev) => prev + 1);
       setIsButtonVisible(false);
@@ -196,7 +192,7 @@ function Main({
   }, [isScreenExtended, isFullScreen]);
 
   useEffect(() => {
-    if (!isScreenRecorded && !focusFlag && !screenExtendedFlag) {
+    if (!isScreenRecorded && !focusFlag && !screenExtendedFlag && !isFinished) {
       handleRuleBreak();
       setRuleBreakCount((prev) => prev - 1);
       setIsButtonVisible(true);
@@ -208,26 +204,10 @@ function Main({
 
   useEffect(() => {
     if (
-      debuggerBool &&
-      !focusFlag &&
-      !screenRecordedFlag &&
-      !screenExtendedFlag
-    ) {
-      handleRuleBreak();
-      setIsButtonVisible(false);
-      setScreenExtendedFlag(false);
-      setFocusFlag(true);
-      setScreenRecordedFlag(false);
-    }
-  }, [debuggerBool, isFullScreen]);
-
-  useEffect(() => {
-    if (
       isFullScreen &&
       document.fullscreenElement &&
       hasFocus &&
       !isScreenExtended &&
-      !debuggerBool &&
       isScreenRecorded
     ) {
       onClose();
@@ -244,7 +224,6 @@ function Main({
     isScreenExtended,
     isScreenRecorded,
     currentScreenSize,
-    debuggerBool,
   ]);
 
   return (
@@ -268,14 +247,17 @@ function Main({
             <ModalContent>
               <ModalBody px={6} pt={6} fontWeight={500}>
                 {screenExtendedFlag &&
+                  !isFinished &&
                   `Dikkat! Birden çok ekran algılandı, ikincil ekranı ${reverseCounter} saniye içinde kapatın!`}
                 {screenRecordedFlag &&
+                  !isFinished &&
                   `Dikkat! Ekran kaydı durduruldu, ${reverseCounter} saniye içinde tekrar başlatın!`}
                 {focusFlag &&
+                  !isFinished &&
                   `Dikkat! Sınav odağı bozuldu, ${reverseCounter} saniye içinde odaklanın!`}
               </ModalBody>
               <ModalFooter p={6}>
-                {isButtonVisible && (
+                {isButtonVisible && !isFinished && (
                   <Button
                     onClick={() => modalButton()}
                     variant={"outline"}

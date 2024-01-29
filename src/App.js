@@ -3,23 +3,13 @@ import { useEffect, useState } from "react";
 import { Button, Flex, Text } from "@chakra-ui/react";
 import Main from "./main.js";
 import ScreenRecord from "./ScreenRecord.js";
-// import "./Debugger.js";
 
 function App() {
-  // Debugger'ın durumunu takip etmek için state
-  // const [debuggerBool, setDebuggerBool] = useState(
-  //   window.devtoolsDetector.isOpen
-  // );
-
   // Çeşitli koşulları takip etmek için state'ler
   const [isClicked, setIsClicked] = useState(false);
   const [isScreenExtended, setIsScreenExtended] = useState(null);
   const [isScreenRecorded, setIsScreenRecorded] = useState(false);
   const [isDevToolsOpen, setIsDevToolsOpen] = useState(false);
-  const [isScreenSize, setIsScreenSize] = useState({
-    width: window.innerWidth,
-    height: window.innerHeight,
-  });
 
   // Ekran uzatma durumunu ele alan fonksiyon
   const handleExtended = () => {
@@ -27,27 +17,22 @@ function App() {
     setIsScreenExtended(element);
   };
 
-  const handleScreenSize = () => {
-    setIsScreenSize({
-      width: window.innerWidth,
-      height: window.innerHeight,
-    });
-  };
   function checkDevTools() {
-    console.log("debugger");
-    const threshold = 160;
+    setInterval(() => {
+      const threshold = 160;
 
-    const start = new Date().getTime();
-    debugger;
-    const end = new Date().getTime();
+      const start = new Date().getTime();
+      debugger;
+      const end = new Date().getTime();
 
-    const isOpen = end - start > threshold;
+      const isOpen = end - start > threshold;
 
-    if (isOpen) {
-      setIsDevToolsOpen(true);
-    } else {
-      setIsDevToolsOpen(false);
-    }
+      if (isOpen) {
+        setIsDevToolsOpen(isOpen);
+      } else {
+        setIsDevToolsOpen(isOpen);
+      }
+    }, 500);
   }
 
   // Chrome tarayıcıyı algılayan fonksiyon
@@ -74,30 +59,22 @@ function App() {
     if (fnBrowserDetect()) {
       !isScreenRecorded && ScreenRecord(setIsScreenRecorded);
     }
-    // burada debugger çalışıyor
-    checkDevTools();
   };
 
   useEffect(() => {
+    checkDevTools();
     // Ekran değişikliği olayını dinlemek için event listener ekleniyor
-    window.addEventListener("resize", handleScreenSize);
     window.screen.addEventListener("change", handleExtended);
 
     return () => {
       // Component unmount olduğunda event listener kaldırılıyor
-      window.removeEventListener("resize", handleScreenSize);
       window.screen.removeEventListener("change", handleExtended);
     };
   }, []);
 
-  useEffect(() => {
-    checkDevTools();
-  }, [isScreenSize]);
-
   // Sayfaları render et
   return (
     <>
-      {isDevToolsOpen ? <div>açık</div> : <div>kapalı</div>}
       <Routes>
         <Route
           path="/"
@@ -106,7 +83,8 @@ function App() {
             isScreenRecorded,
             isClicked,
             setIsClicked,
-            setIsScreenRecorded
+            setIsScreenRecorded,
+            isDevToolsOpen
           )}
         />
         <Route
@@ -117,8 +95,6 @@ function App() {
               isScreenExtended={isScreenExtended}
               isScreenRecorded={isScreenRecorded}
               setIsScreenRecorded={setIsScreenRecorded}
-              // debuggerBool={debuggerBool}
-              // setDebuggerBool={setDebuggerBool}
             />
           }
         />
@@ -133,7 +109,8 @@ const linkPage = (
   isScreenRecorded,
   isClicked,
   setIsClicked,
-  setIsScreenRecorded
+  setIsScreenRecorded,
+  isDevToolsOpen
 ) => {
   return (
     <>
@@ -151,10 +128,14 @@ const linkPage = (
               isClicked ? (
                 // Zaten tıklandıysa ana sayfaya yönlendir
                 <Navigate to="/main" />
+              ) : isDevToolsOpen ? (
+                <Text fontWeight={"500"}>
+                  Sınava Girebilmek için geliştirici konsolunu kapatın
+                </Text>
               ) : (
                 // Tıklama başlatmak için bağlantıyı göster
                 <Link to="/" onClick={() => setIsClicked(true)}>
-                  <Text fontWeight={"500"} onClick={() => setIsClicked(true)}>
+                  <Text fontWeight={"500"}>
                     Sınava Girebilmek için lütfen tıklayın
                   </Text>
                 </Link>
