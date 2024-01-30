@@ -20,6 +20,7 @@ function Main({
   isScreenRecorded,
   setIsScreenRecorded,
   isDevToolsOpen,
+  prevDevToolsState,
 }) {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [currentScreenSize, setCurrentScreenSize] = useState({
@@ -33,9 +34,11 @@ function Main({
   const [isButtonVisible, setIsButtonVisible] = useState(false);
   const [focusBreach, setFocusBreach] = useState(0);
   const [extendedBreach, setExtendedBreach] = useState(0);
+  const [devToolsBreach, setDevToolsBreach] = useState(0);
   const [screenExtendedFlag, setScreenExtendedFlag] = useState(false);
   const [screenRecordedFlag, setScreenRecordedFlag] = useState(false);
   const [focusFlag, setFocusFlag] = useState(false);
+  const [devToolsFlag, setDevToolsFlag] = useState(false);
   const [isFinished, setIsFinished] = useState(false);
 
   const handleResize = () => {
@@ -106,13 +109,19 @@ function Main({
     window.addEventListener("focus", handleFocus);
 
     const handleFullscreenChange = () => {
-      setIsFullScreen(!!document.fullscreenElement);
+      setIsFullScreen(
+        !!document.fullscreenElement &&
+          !screenExtendedFlag &&
+          !screenRecordedFlag &&
+          !devToolsFlag
+      );
       if (!document.fullscreenElement) {
         handleRuleBreak();
         setFocusBreach((prev) => prev + 1);
         setIsButtonVisible(true);
         setScreenRecordedFlag(false);
         setFocusFlag(true);
+        setDevToolsFlag(false);
         setScreenExtendedFlag(false);
       }
     };
@@ -143,24 +152,22 @@ function Main({
 
   useEffect(() => {
     if (ruleBreakCount === 3) {
+      clearInterval(intval.current);
       setIsFinished(true);
+      onClose();
     }
-  }, [ruleBreakCount]);
+  }, [ruleBreakCount, onClose]);
 
   useEffect(() => {
     if (reverseCounter === 0) {
       setIsFinished(true);
       clearInterval(intval.current);
     }
-  }, [reverseCounter]);
+  }, [reverseCounter, onClose]);
 
   useEffect(() => {
     if (isFinished) onClose();
   }, [isFinished]);
-
-  useEffect(() => {
-    console.log(isClicked);
-  }, [isClicked]);
 
   useEffect(() => {
     if (
@@ -168,6 +175,7 @@ function Main({
       !hasFocus &&
       !screenRecordedFlag &&
       !screenExtendedFlag &&
+      !devToolsFlag &&
       !isFinished
     ) {
       if (!focusFlag) {
@@ -177,6 +185,7 @@ function Main({
         setScreenExtendedFlag(false);
         setScreenRecordedFlag(false);
         setFocusFlag(true);
+        setDevToolsFlag(false);
       }
     }
   }, [hasFocus, isFullScreen]);
@@ -187,7 +196,8 @@ function Main({
       isScreenExtended &&
       !screenRecordedFlag &&
       !focusFlag &&
-      !isFinished
+      !isFinished &&
+      !devToolsFlag
     ) {
       if (!screenExtendedFlag) {
         handleRuleBreak();
@@ -195,28 +205,46 @@ function Main({
         setIsButtonVisible(false);
         setScreenRecordedFlag(false);
         setFocusFlag(false);
+        setDevToolsFlag(false);
         setScreenExtendedFlag(true);
       }
     }
   }, [isScreenExtended, isFullScreen]);
 
   useEffect(() => {
-    if (!isScreenRecorded && !focusFlag && !screenExtendedFlag && !isFinished) {
+    if (
+      !isScreenRecorded &&
+      !focusFlag &&
+      !screenExtendedFlag &&
+      !isFinished &&
+      !devToolsFlag
+    ) {
       if (!screenRecordedFlag) {
         handleRuleBreak();
         setRuleBreakCount((prev) => prev - 1);
         setIsButtonVisible(true);
         setScreenExtendedFlag(false);
         setFocusFlag(false);
+        setDevToolsFlag(false);
         setScreenRecordedFlag(true);
       }
     }
   }, [isScreenRecorded]);
 
   useEffect(() => {
-    if (isDevToolsOpen === 1 && !isFinished) {
-      setIsFinished(true);
+    // Check if isDevToolsOpen changed from false to true
+    if (isDevToolsOpen === true && !isFinished && !prevDevToolsState.current) {
+      setDevToolsBreach((prev) => prev + 1);
+      setRuleBreakCount((prev) => prev - 1);
+      handleRuleBreak();
+      setIsButtonVisible(false);
+      setScreenRecordedFlag(false);
+      setFocusFlag(false);
+      setDevToolsFlag(true);
+      setScreenExtendedFlag(false);
     }
+    // Update the previous state
+    prevDevToolsState.current = isDevToolsOpen;
   }, [isDevToolsOpen, isFinished]);
 
   useEffect(() => {
@@ -225,7 +253,8 @@ function Main({
       document.fullscreenElement &&
       hasFocus &&
       !isScreenExtended &&
-      isScreenRecorded
+      isScreenRecorded &&
+      !isDevToolsOpen
     ) {
       onClose();
       setReverseCounter(10);
@@ -234,12 +263,14 @@ function Main({
       setScreenExtendedFlag(false);
       setFocusFlag(false);
       setScreenRecordedFlag(false);
+      setDevToolsFlag(false);
     }
   }, [
     isFullScreen,
     hasFocus,
     isScreenExtended,
     isScreenRecorded,
+    isDevToolsOpen,
     currentScreenSize,
   ]);
 
@@ -266,6 +297,9 @@ function Main({
                 {screenExtendedFlag &&
                   !isFinished &&
                   `Dikkat! Birden çok ekran algılandı, ikincil ekranı ${reverseCounter} saniye içinde kapatın!`}
+                {devToolsFlag &&
+                  !isFinished &&
+                  `Dikkat! Geliştirici konsolu açık, lütfen ${reverseCounter} saniye içinde kapatın!`}
                 {screenRecordedFlag &&
                   !isFinished &&
                   `Dikkat! Ekran kaydı durduruldu, ${reverseCounter} saniye içinde tekrar başlatın!`}
@@ -300,12 +334,16 @@ function Main({
             >
               <Text fontWeight={500} color={"black"}>
                 {isFinished
-                  ? "Sınavınız kural ihlalinden dolayı iptal edilmiştir!"
+                  ? "Dikkat! Kural ihlali sınırı aşıldı"
                   : ruleBreakCount === 0 &&
                     focusBreach === 0 &&
-                    extendedBreach === 0
+                    extendedBreach === 0 &&
+                    devToolsBreach === 0
                   ? "Herhangi bir ihlal yok, sınava devam edebilirsiniz"
-                  : !focusFlag && !screenExtendedFlag
+                  : !focusFlag &&
+                    !screenExtendedFlag &&
+                    !devToolsFlag &&
+                    isScreenRecorded
                   ? "Sınava devam edebilirsiniz"
                   : ""}
               </Text>

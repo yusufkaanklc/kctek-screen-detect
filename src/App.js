@@ -1,5 +1,5 @@
 import { Route, Routes, Link, Navigate } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Button, Flex, Text } from "@chakra-ui/react";
 import Main from "./main.js";
 import ScreenRecord from "./ScreenRecord.js";
@@ -9,7 +9,8 @@ function App() {
   const [isClicked, setIsClicked] = useState(false);
   const [isScreenExtended, setIsScreenExtended] = useState(null);
   const [isScreenRecorded, setIsScreenRecorded] = useState(false);
-  const [isDevToolsOpen, setIsDevToolsOpen] = useState(0);
+  const [isDevToolsOpen, setIsDevToolsOpen] = useState(false);
+  const prevDevToolsState = useRef(false);
 
   // Ekran uzatma durumunu ele alan fonksiyon
   const handleExtended = () => {
@@ -18,19 +19,22 @@ function App() {
   };
 
   function checkDevTools() {
-    setInterval(() => {
-      const threshold = 160;
+    if (window.location.pathname === "/main") {
+      const errorObject = Object.defineProperties(new Error(), {
+        message: {
+          get() {
+            setIsDevToolsOpen(true);
+          },
+        },
+        toString: {
+          value() {
+            setIsDevToolsOpen(false);
+          },
+        },
+      });
 
-      const start = new Date().getTime();
-      debugger;
-      const end = new Date().getTime();
-
-      const isOpen = end - start > threshold;
-
-      isOpen &&
-        window.location.pathname === "/main" &&
-        setIsDevToolsOpen((prev) => prev + 1);
-    }, 500);
+      console.log(errorObject);
+    }
   }
 
   // Chrome tarayıcıyı algılayan fonksiyon
@@ -61,15 +65,21 @@ function App() {
 
   useEffect(() => {
     checkDevTools();
+    const devToolsInterval = setInterval(checkDevTools, 500);
     handleExtended();
     // Ekran değişikliği olayını dinlemek için event listener ekleniyor
     window.screen.addEventListener("change", handleExtended);
 
     return () => {
+      clearInterval(devToolsInterval);
       // Component unmount olduğunda event listener kaldırılıyor
       window.screen.removeEventListener("change", handleExtended);
     };
   }, []);
+
+  useEffect(() => {
+    console.log(isDevToolsOpen);
+  }, [isDevToolsOpen]);
 
   // Sayfaları render et
   return (
@@ -94,6 +104,7 @@ function App() {
               isScreenRecorded={isScreenRecorded}
               setIsScreenRecorded={setIsScreenRecorded}
               isDevToolsOpen={isDevToolsOpen}
+              prevDevToolsState={prevDevToolsState}
             />
           }
         />
